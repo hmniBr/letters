@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Firebase SDK 라이브러리 가져오기
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // Firebase 구성 정보 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsgzLx5GIzEEmH450I-wRYUmCQhy1aQCo",
+            authDomain: "letters-3a9cc.firebaseapp.com",
+            projectId: "letters-3a9cc",
+            storageBucket: "letters-3a9cc.appspot.com",
+            messagingSenderId: "648459468450",
+            appId: "1:648459468450:web:f2b911cb257f3d2a03a1fb",
+            measurementId: "G-X5L4PF9KN4"
+        };
+
+        // Firebase 인스턴스 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('thumbnailInput').onchange = function (event) {
+                var reader = new FileReader();
+                reader.onload = function () {
+                    var output = document.getElementById('thumbnailPreview');
+                    output.src = reader.result;
+                    output.style.display = 'block';
+                }
+                reader.readAsDataURL(event.target.files[0]);
+            };
+
+            document.getElementById('photoInput').onchange = function (event) {
+                var reader = new FileReader();
+                reader.onload = function () {
+                    var output = document.getElementById('photoPreview');
+                    output.src = reader.result;
+                    output.style.display = 'block';
+                }
+                reader.readAsDataURL(event.target.files[0]);
+            };
+
+            async function addPost() {
+                console.log("addPost function called");  // Log function call
+                const thumbnail = document.getElementById('thumbnailPreview').src;
+                const photo = document.getElementById('photoPreview').src;
+                const title = document.getElementById('albumTitle').value;
+                const date = document.getElementById('albumDate').value;
+                const content = document.getElementById('albumContent').value;
+
+                console.log({ thumbnail, photo, title, date, content });  // Log form data
+
+                if (title && date && content) {
+                    try {
+                        const docRef = await addDoc(collection(db, "posts"), {
+                            thumbnail,
+                            photo,
+                            title,
+                            date,
+                            content
+                        });
+                        console.log("Document written with ID: ", docRef.id);  // Log successful write
+                        alert('편지가 전달되었습니다.');
+                        resetForm();
+                        loadPosts();
+                    } catch (e) {
+                        console.error("Error adding document: ", e);  // Log error
+                    }
+                } else {
+                    alert('모든 필드를 입력해주세요.');
+                }
+            }
+
+            async function loadPosts() {
+                console.log("loadPosts function called");  // Log function call
+                const postRow = document.getElementById('postRow');
+                postRow.innerHTML = '';
+                try {
+                    const querySnapshot = await getDocs(collection(db, "posts"));
+                    querySnapshot.forEach((doc) => {
+                        const post = doc.data();
+                        console.log(post);  // Log post data
+                        const col = document.createElement('div');
+                        col.className = 'col';
+
+                        const card = document.createElement('div');
+                        card.className = 'card h-100';
+
+                        const img = document.createElement('img');
+                        img.className = 'card-img-top';
+                        img.src = post.thumbnail;
+                        img.alt = 'Thumbnail';
+                        img.onclick = function () { showPost(post.photo, post.title, post.content, post.date, this); };
+
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body';
+
+                        const cardTitle = document.createElement('h5');
+                        cardTitle.className = 'card-title';
+                        cardTitle.innerText = post.title;
+
+                        const cardText = document.createElement('p');
+                        cardText.className = 'card-text';
+                        cardText.innerText = post.content;
+
+                        const cardFooter = document.createElement('div');
+                        cardFooter.className = 'card-footer';
+                        cardFooter.innerHTML = `<small class="text-muted">${post.date}</small>
+                                                <div class="d-flex justify-content-between mt-2">
+                                                    <button class="btn btn-outline-primary btn-sm" onclick="likePost(this)">공감</button>
+                                                    <button class="btn btn-outline-warning btn-sm" onclick="editPost(this)">수정</button>
+                                                    <button class="btn btn-outline-danger btn-sm" onclick="deletePost(this)">삭제</button>
+                                                </div>`;
+
+                        cardBody.appendChild(cardTitle);
+                        cardBody.appendChild(cardText);
+                        card.appendChild(img);
+                        card.appendChild(cardBody);
+                        card.appendChild(cardFooter);
+                        col.appendChild(card);
+                        postRow.appendChild(col);
+                    });
+                } catch (e) {
+                    console.error("Error loading documents: ", e);  // Log error
+                }
+            }
+
+            function likePost(button) {
+                button.innerText = '공감 완료';
+                button.disabled = true;
+            }
+
+            function editPost(button) {
+                // Edit functionality
+                alert('수정 기능은 아직 구현되지 않았습니다.');
+            }
+
+            function deletePost(button) {
+                const postCol = button.closest('.col');
+                postCol.remove();
+            }
+
+            function showPost(photo, title, content, date, imgElement) {
+                document.getElementById('modalPhoto').src = photo;
+                document.getElementById('modalTitle').innerText = title;
+                document.getElementById('modalContent').innerText = content;
+                document.getElementById('modalDate').innerText = date;
+                document.getElementById('postModal').querySelector('#modalLikeButton').onclick = function () { likePost(imgElement.closest('.card').querySelector('.btn-outline-primary')); };
+                document.getElementById('postModal').querySelector('#modalEditButton').onclick = function () { editPost(imgElement.closest('.card').querySelector('.btn-outline-warning')); };
+                document.getElementById('postModal').querySelector('#modalDeleteButton').onclick = function () { deletePost(imgElement.closest('.card').querySelector('.btn-outline-danger')); };
+                var modal = new bootstrap.Modal(document.getElementById('postModal'));
+                modal.show();
+            }
+
+            // Load posts on page load
+            loadPosts();
+
+            // Expose functions to global scope
+            window.addPost = addPost;
+            window.loadPosts = loadPosts;
+        });
+
+        function resetForm() {
+            document.getElementById('thumbnailInput').value = '';
+            document.getElementById('thumbnailPreview').style.display = 'none';
+            document.getElementById('photoInput').value = '';
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('albumTitle').value = '';
+            document.getElementById('albumDate').value = '';
+            document.getElementById('albumContent').value = '';
+        }
+    </script>
+
+    <title>My Album</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+
+        * {
+            font-family: 'Gowun Dodum', sans-serif;
+        }
+
+        .mytitle {
+            background-color: green;
+            color: white;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: url('https://postfiles.pstatic.net/MjAyNDA2MjFfMTcx/MDAxNzE4OTM2ODcyMjg0.M7QQY3DqLatU_fP2JRXFa_rB4rTGczdg2SkLiTUqilMg.Umnhx3_JJ9W07ceKg_8T16PpVQXEMS-TheMcwabOS1Ug.PNG/%EC%A0%9C%EB%AA%A9_%EC%97%86%EB%8A%94_%EC%95%84%ED%8A%B8%EC%9B%8C%ED%81%AC.png?type=w966');
+            background-position: center;
+            background-size: cover;
+        }
+
+        .mytitle > button {
+            width: 150px;
+            height: 50px;
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 5px;
+            border: 1px solid white;
+            margin-top: 20px;
+        }
+
+        .mycards {
+            margin: 20px auto;
+            width: 1200px;
+        }
+
+        .mypostbox {
+            width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 3px 0px blue;
+        }
+
+        .mybtn {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .mybtn > button {
+            margin-right: 10px;
+        }
+
+        .card-img-top {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="mytitle">
+        <h1>SECRET POST OFFICE</h1>
+        <button data-bs-toggle="modal" data-bs-target="#postModal">secret post office</button>
+    </div>
+
+    <div class="mypostbox" id="postForm">
+        <div class="form-floating mb-3">
+            <input type="file" class="form-control" id="thumbnailInput" accept="image/*">
+            <label for="thumbnailInput">포장지</label>
+            <img id="thumbnailPreview" src="#" alt="Thumbnail Preview" style="display: none; width: 100%; margin-top: 10px;">
+        </div>
+
+        <div class="form-floating mb-3">
+            <input type="file" class="form-control" id="photoInput" accept="image/*">
+            <label for="photoInput">편지</label>
+            <img id="photoPreview" src="#" alt="Photo Preview" style="display: none; width: 100%; margin-top: 10px;">
+        </div>
+
+        <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="albumTitle" placeholder="앨범 제목">
+            <label for="albumTitle">추신</label>
+        </div>
+
+        <div class="form-floating mb-3">
+            <input type="date" class="form-control" id="albumDate">
+            <label for="albumDate">발송일</label>
+        </div>
+
+        <div class="form-floating">
+            <textarea class="form-control" placeholder="앨범 내용" id="albumContent"></textarea>
+            <label for="albumContent">덧붙이기</label>
+        </div>
+
+        <div class="mybtn">
+            <button type="button" class="btn btn-dark" onclick="addPost()">편지 보내기</button>
+            <button type="button" class="btn btn-outline-dark" onclick="resetForm()">접기</button>
+        </div>
+    </div>
+
+    <div class="mycards" id="postsContainer">
+        <div class="row row-cols-1 row-cols-md-4 g-4" id="postRow">
+            <!-- Posts will be dynamically added here -->
+        </div>
+    </div>
+
+    <!-- Modal for viewing full post -->
+    <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="postModalLabel">편지 보기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="modalPhoto" src="#" alt="Photo" style="width: 100%;">
+                    <h5 id="modalTitle" class="mt-3"></h5>
+                    <p id="modalContent"></p>
+                    <small id="modalDate" class="text-muted"></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="modalLikeButton">감사</button>
+                    <button type="button" class="btn btn-outline-warning" id="modalEditButton">수정</button>
+                    <button type="button" class="btn btn-outline-danger" id="modalDeleteButton">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
